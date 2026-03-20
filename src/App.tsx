@@ -17,8 +17,7 @@ function App() {
       <WorkingCalendar
         legend="Team calendar"
         events={mockEvents}
-        maxVisibleEvents={3}
-        onAddClick={(date) => console.log("add on", date)}
+        onDateClick={(date) => console.log("add on", date)}
         onEventClick={(event) => console.log("event clicked", event)}
       />
     </div>

@@ -51,7 +51,6 @@ export function validateEvents(raw: unknown[]): {
 
 export const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const DEFAULT_COLOR = "#6366f1";
-export const DEFAULT_MAX_VISIBLE = 3;
 
 /**
  * Derives a foreground color (near-black or white) from any CSS color string

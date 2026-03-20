@@ -12,6 +12,7 @@ export default function OverflowDialog({
   onEventClick,
   renderTooltip,
   calendarTimezone,
+  eventActionLabel,
 }: OverflowDialogProps) {
   const [activeId, setActiveId] = useState<string>(events[0]?.id ?? "");
   const [position, setPosition] = useState<React.CSSProperties>({});
@@ -128,6 +129,7 @@ export default function OverflowDialog({
                 event={activeEvent}
                 onEventClick={onEventClick}
                 calendarTimezone={calendarTimezone}
+                eventActionLabel={eventActionLabel}
               />
             )
           ) : (

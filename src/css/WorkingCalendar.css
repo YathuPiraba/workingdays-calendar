@@ -233,11 +233,11 @@
 .wc-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 120px;
 }
 
 /* ─── Cell ────────────────────────────────────────────────────────────────── */
 .wc-cell {
-  min-height: 100px;
   padding: 8px 8px 28px; /* bottom room for week badge */
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -247,6 +247,7 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  overflow: hidden;
 }
 
 .wc-cell:nth-child(7n) {
@@ -314,7 +315,7 @@
   );
 }
 
-/* ─── Cell top row (day number + add button) ──────────────────────────────── */
+/* ─── Cell top row (day number + add/edit button) ─────────────────────────── */
 .wc-cell-top {
   display: flex;
   align-items: center;
@@ -391,14 +392,29 @@
 .wc-cell:hover .wc-add-btn {
   opacity: 1;
 }
+
 .wc-add-btn:hover {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
   transform: scale(1.1);
 }
+
 .wc-add-btn:active {
   transform: scale(0.95);
+}
+
+/* ─── Pencil / edit button (days that already have events) ────────────────── */
+.wc-add-btn.wc-edit-btn {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.wc-add-btn.wc-edit-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  transform: scale(1.1);
 }
 
 /* ─── Disabled line ───────────────────────────────────────────────────────── */

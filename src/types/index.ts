@@ -59,6 +59,7 @@ export interface OverflowDialogProps {
   /** Forwarded from WorkingCalendarProps — custom right-page renderer */
   renderTooltip?: (event: CalendarEvent) => ReactNode;
   calendarTimezone?: string;
+  eventActionLabel?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,7 +107,7 @@ export interface WorkingCalendarProps {
   /** Fired when user clicks the Add button after selecting dates (multiSelect mode) */
   onMultiSelect?: (dates: string[]) => void;
   /** Fired when user clicks the + icon on a single cell (non-multiSelect mode) */
-  onAddClick?: (date: string) => void;
+  onDateClick?: (date: string) => void;
 
   // — Event system —
   /** Events to render in the calendar cells */
@@ -149,6 +150,8 @@ export interface WorkingCalendarProps {
    * Defaults to false (legend is shown whenever events are present).
    */
   hideLegend?: boolean;
+
+  eventActionLabel?: string;
 }
 
 export interface OverflowChipProps {

@@ -11,10 +11,12 @@ export default function DefaultDetail({
   event,
   onEventClick,
   calendarTimezone,
+  eventActionLabel = "Open event",
 }: {
   event: CalendarEvent;
   onEventClick?: (event: CalendarEvent) => void;
   calendarTimezone?: string;
+  eventActionLabel?: string;
 }) {
   const color = event.color ?? DEFAULT_COLOR;
   const tz = resolveEventTz(event.timezone, calendarTimezone);
@@ -71,7 +73,7 @@ export default function DefaultDetail({
             style={{ borderColor: color, color }}
             onClick={() => onEventClick(event)}
           >
-            Open event
+            {eventActionLabel}
           </button>
         )}
       </div>

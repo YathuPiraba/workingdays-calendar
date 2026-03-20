@@ -19,7 +19,7 @@ import EventPill from "./EventPill";
 import LegendStrip from "./LegendStrip";
 import OverflowChip from "./OverflowChip";
 import type { CalendarEvent, WorkingCalendarProps } from "../types";
-import { DEFAULT_MAX_VISIBLE, validateEvents, WEEKDAYS } from "../utils";
+import { validateEvents, WEEKDAYS } from "../utils";
 import "../css/WorkingCalendar.css";
 
 export default function WorkingCalendar({
@@ -28,14 +28,15 @@ export default function WorkingCalendar({
   disabledDates = [],
   multiSelect = false,
   onMultiSelect,
-  onAddClick,
+  onDateClick,
   events: eventsProp = [],
-  maxVisibleEvents = DEFAULT_MAX_VISIBLE,
+  maxVisibleEvents = 2,
   renderEvent,
   renderTooltip,
   onEventClick,
   hideLegend = false,
   calendarTimezone,
+  eventActionLabel,
 }: WorkingCalendarProps = {}) {
   const today = new Date();
   const [viewDate, setViewDate] = useState(
@@ -131,7 +132,19 @@ export default function WorkingCalendar({
     anchorRef: React.RefObject<HTMLButtonElement>;
   } | null>(null);
 
-  const showLegend = !hideLegend && validatedEvents.length > 0;
+  // Filter events to only those within the currently viewed month (for legend)
+  const currentMonthEvents = useMemo(() => {
+    const monthStartKey = format(monthStart, "yyyy-MM-dd");
+    const monthEndKey = format(monthEnd, "yyyy-MM-dd");
+    return validatedEvents.filter((ev) => {
+      const tz = resolveEventTz(ev.timezone, calendarTimezone);
+      const key = toDateKey(ev.date, tz);
+      if (!key) return false;
+      return key >= monthStartKey && key <= monthEndKey;
+    });
+  }, [validatedEvents, monthStart, monthEnd, calendarTimezone]);
+
+  const showLegend = !hideLegend && currentMonthEvents.length > 0;
 
   return (
     <div className="wc-wrapper">
@@ -244,6 +257,7 @@ export default function WorkingCalendar({
               const cellEvents = outside
                 ? []
                 : (eventsByDate.get(dayKey) ?? []);
+              const hasEvents = cellEvents.length > 0;
               const visibleEvents = cellEvents.slice(0, maxVisibleEvents);
               const hiddenEvents = cellEvents.slice(maxVisibleEvents);
 
@@ -259,7 +273,7 @@ export default function WorkingCalendar({
                     isDisabled ? "disabled" : "",
                     multiSelect && !outside && !isDisabled ? "selectable" : "",
                     isSelected ? "selected" : "",
-                    cellEvents.length > 0 ? "has-events" : "",
+                    hasEvents ? "has-events" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -268,20 +282,42 @@ export default function WorkingCalendar({
                       toggleDaySelection(day);
                   }}
                 >
-                  {/* Day number + add button row */}
+                  {/* Day number + add/edit button row */}
                   <div className="wc-cell-top">
                     <span className="wc-day-num">{format(day, "d")}</span>
 
-                    {!multiSelect && !outside && !isDisabled && onAddClick && (
+                    {!multiSelect && !outside && !isDisabled && onDateClick && (
                       <button
-                        className="wc-add-btn"
-                        aria-label={`Add event on ${format(day, "PPP")}`}
+                        className={`wc-add-btn${hasEvents ? " wc-edit-btn" : ""}`}
+                        aria-label={
+                          hasEvents
+                            ? `Edit events on ${format(day, "PPP")}`
+                            : `Add event on ${format(day, "PPP")}`
+                        }
                         onClick={(e) => {
                           e.stopPropagation();
-                          onAddClick(dayKey);
+                          onDateClick(dayKey);
                         }}
                       >
-                        +
+                        {hasEvents ? (
+                          <svg
+                            width="11"
+                            height="11"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M8.5 1.5a1.414 1.414 0 0 1 2 2L3.5 10.5l-3 .5.5-3L8.5 1.5z"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        ) : (
+                          "+"
+                        )}
                       </button>
                     )}
 
@@ -341,7 +377,7 @@ export default function WorkingCalendar({
       </div>
 
       {/* Dynamic event legend */}
-      {showLegend && <LegendStrip events={validatedEvents} />}
+      {showLegend && <LegendStrip events={currentMonthEvents} />}
 
       {/* Overflow dialog */}
       {overflowDialog && (
@@ -353,6 +389,7 @@ export default function WorkingCalendar({
           onEventClick={onEventClick}
           renderTooltip={renderTooltip}
           calendarTimezone={calendarTimezone}
+          eventActionLabel={eventActionLabel}
         />
       )}
     </div>
