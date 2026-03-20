@@ -7,6 +7,10 @@ A fully-featured, timezone-aware working days calendar component for React. Supp
 
 ---
 
+![Working Days Calendar – overall view](https://raw.githubusercontent.com/YathuPiraba/working-days-calendar/main/docs/default.png)
+
+---
+
 ## Installation
 
 ```bash
@@ -26,7 +30,7 @@ import "react-working-days-calendar/dist/react-working-days-calendar.css";
 const events = [
   {
     id: "evt-005",
-    date: 2026-03-08T15:00:00+00:00,
+    date: "2026-03-08T15:00:00+00:00",
     timezone: "UTC",
     label: "Budget review",
     color: "#E67E22",
@@ -202,6 +206,8 @@ const events = [
 />
 ```
 
+![Multi-select mode](https://raw.githubusercontent.com/YathuPiraba/working-days-calendar/main/docs/multiselect.png)
+
 ---
 
 ## Disabled Dates
@@ -227,6 +233,30 @@ const [events, setEvents] = useState([]);
   }}
 />;
 ```
+
+---
+
+## Event Overflow Dialog
+
+When a calendar cell has more than 2 events, an overflow dialog lets users view all of them without cluttering the grid.
+
+![Event overflow dialog](https://raw.githubusercontent.com/YathuPiraba/working-days-calendar/main/docs/overflow.png)
+
+---
+
+## Mini Calendar Picker
+
+A compact date picker for fast month and year navigation.
+
+![Mini calendar picker](https://raw.githubusercontent.com/YathuPiraba/working-days-calendar/main/docs/miniCalendar.png)
+
+---
+
+## Dynamic Legend Strip
+
+The legend strip is auto-generated from visible events in the current month view.
+
+![Legend strip](https://raw.githubusercontent.com/YathuPiraba/working-days-calendar/main/docs/legend.png)
 
 ---
 
