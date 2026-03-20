@@ -496,9 +496,8 @@
 
 /* ─── Tooltip ─────────────────────────────────────────────────────────────── */
 .wc-tooltip {
-  position: absolute;
-  left: 0;
-  z-index: 100;
+  position: fixed;
+  z-index: 9999;
   min-width: 180px;
   max-width: 260px;
   background: var(--surface);
@@ -509,6 +508,50 @@
     0 1px 4px rgba(0, 0, 0, 0.06);
   pointer-events: none;
   animation: wc-tooltip-in 0.12s ease;
+}
+
+/* Timezone row — single line, name truncates, offset stays visible */
+.wc-tooltip-tz {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.wc-tooltip-tz-name {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Shrink long timezone names (e.g. "America/New_York") but keep offset visible */
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.wc-tooltip-tz-offset {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  line-height: 1.6;
+  white-space: nowrap;
+  flex-shrink: 0; /* never truncate the UTC offset */
+}
+
+.wc-tooltip-time {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
 }
 
 @keyframes wc-tooltip-in {

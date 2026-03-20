@@ -28,17 +28,26 @@ export default function EventPill({
   const handleMouseEnter = useCallback(() => setTooltipOpen(true), []);
   const handleMouseLeave = useCallback(() => setTooltipOpen(false), []);
 
-  // Flip tooltip upward if near bottom of viewport
   useEffect(() => {
     if (!tooltipOpen || !pillRef.current || !tooltipRef.current) return;
+
     const pillRect = pillRef.current.getBoundingClientRect();
     const tipH = tooltipRef.current.offsetHeight;
-    const spaceBelow = window.innerHeight - pillRect.bottom;
-    setTooltipStyle(
-      spaceBelow < tipH + 12
-        ? { bottom: "calc(100% + 6px)", top: "auto" }
-        : { top: "calc(100% + 6px)", bottom: "auto" },
-    );
+    const tipW = tooltipRef.current.offsetWidth;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const spaceBelow = vh - pillRect.bottom;
+    const top =
+      spaceBelow < tipH + 12 ? pillRect.top - tipH - 6 : pillRect.bottom + 6;
+
+    let left = pillRect.left;
+    if (left + tipW > vw - 12) {
+      left = vw - tipW - 12;
+    }
+    if (left < 8) left = 8;
+
+    setTooltipStyle({ position: "fixed", top, left, zIndex: 9999 });
   }, [tooltipOpen]);
 
   const ctx = { dateKey, trackIndex, tooltipOpen };
@@ -105,6 +114,7 @@ function DefaultTooltip({
   const tz = resolveEventTz(event.timezone, calendarTimezone);
   const showTz = tz !== LOCAL_TZ || event.timezone;
   const utcOffset = showTz ? getUtcOffset(tz) : null;
+
   // Format the event time if the date includes a time component
   const timeStr =
     typeof event.date === "string" && event.date.includes("T")
@@ -118,10 +128,12 @@ function DefaultTooltip({
         <span className="wc-tooltip-title">{event.label}</span>
       </div>
 
-      {/* Timezone badge */}
+      {/* Timezone badge — single line, truncated if long */}
       {showTz && (
         <div className="wc-tooltip-tz">
-          <span className="wc-tooltip-tz-name">{tz}</span>
+          <span className="wc-tooltip-tz-name" title={tz}>
+            {tz}
+          </span>
           {utcOffset && (
             <span className="wc-tooltip-tz-offset">{utcOffset}</span>
           )}

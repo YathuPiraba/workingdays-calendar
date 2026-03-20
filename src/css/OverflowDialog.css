@@ -354,3 +354,37 @@
   background: var(--surface-2, rgba(0, 0, 0, 0.06));
   color: var(--text-primary);
 }
+
+/* ─── Timezone display in detail view ────────────────────────────────────── */
+.wc-od-tz-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: -2px;
+}
+
+.wc-od-tz-name {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.wc-od-tz-offset {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  opacity: 0.65;
+  padding: 0px 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  line-height: 1.6;
+}
+
+.wc-od-time {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
