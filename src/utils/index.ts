@@ -51,7 +51,20 @@ export function validateEvents(raw: unknown[]): {
 
 export const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const DEFAULT_COLOR = "#6366f1";
-
+export const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 /**
  * Derives a foreground color (near-black or white) from any CSS color string
  * using perceived luminance via a 1x1 canvas. Falls back to white on failure.

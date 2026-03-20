@@ -1,21 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MiniCalendarProps } from "../types";
+import { MONTHS } from "../utils";
 import "../css/MiniCalendar.css";
-
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 
 export default function MiniCalendar({
   currentMonth,

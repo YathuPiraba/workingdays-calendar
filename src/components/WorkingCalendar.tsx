@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState } from "react";
+import { useRef, useMemo, useState, useCallback } from "react";
 import {
   addMonths,
   eachDayOfInterval,
@@ -37,6 +37,7 @@ export default function WorkingCalendar({
   hideLegend = false,
   calendarTimezone,
   multiSelectAddLabel = "Add",
+  onMonthYearChange,
 }: WorkingCalendarProps) {
   const today = new Date();
   const [viewDate, setViewDate] = useState(
@@ -45,6 +46,18 @@ export default function WorkingCalendar({
   const [showMini, setShowMini] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const monthBtnRef = useRef<HTMLButtonElement>(null);
+
+  /**
+   * Central setter — every navigation action goes through here so that
+   * onMonthYearChange is always fired when the view actually changes.
+   */
+  const applyViewDate = useCallback(
+    (next: Date) => {
+      setViewDate(next);
+      onMonthYearChange?.(next.getMonth() + 1, next.getFullYear());
+    },
+    [onMonthYearChange],
+  );
 
   // Validate events at runtime
   const validatedEvents = useMemo(() => {
@@ -97,12 +110,12 @@ export default function WorkingCalendar({
     rows.push(allDays.slice(i, i + 7));
   }
 
-  const handlePrev = () => setViewDate((d) => addMonths(d, -1));
-  const handleNext = () => setViewDate((d) => addMonths(d, 1));
+  const handlePrev = () => applyViewDate(addMonths(viewDate, -1));
+  const handleNext = () => applyViewDate(addMonths(viewDate, 1));
   const handleToday = () =>
-    setViewDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    applyViewDate(new Date(today.getFullYear(), today.getMonth(), 1));
   const handleMiniSelect = (month: number, year: number) =>
-    setViewDate(new Date(year, month, 1));
+    applyViewDate(new Date(year, month, 1));
   const isOutside = (d: Date) => d < monthStart || d > monthEnd;
 
   const toggleDaySelection = (day: Date) => {

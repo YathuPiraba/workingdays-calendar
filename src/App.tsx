@@ -19,6 +19,9 @@ function App() {
         events={mockEvents}
         onDateClick={(date) => console.log("add on", date)}
         onEventClick={(event) => console.log("event clicked", event)}
+        onMonthYearChange={(month, year) =>
+          console.log("month changed", month, year)
+        }
       />
     </div>
   );

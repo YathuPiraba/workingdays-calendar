@@ -154,6 +154,16 @@ export interface WorkingCalendarProps {
   eventActionLabel?: string;
 
   multiSelectAddLabel?: string;
+
+  /**
+   * Fired whenever the visible month/year changes — via the prev/next arrows,
+   * the Today button, or the MiniCalendar picker.
+   * Receives the new month (1-indexed, 1 = January) and the new year.
+   *
+   * @example
+   * <WorkingCalendar onMonthYearChange={(month, year) => fetchEvents(month, year)} />
+   */
+  onMonthYearChange?: (month: number, year: number) => void;
 }
 
 export interface OverflowChipProps {
