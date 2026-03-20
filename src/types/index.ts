@@ -152,6 +152,8 @@ export interface WorkingCalendarProps {
   hideLegend?: boolean;
 
   eventActionLabel?: string;
+
+  multiSelectAddLabel?: string;
 }
 
 export interface OverflowChipProps {

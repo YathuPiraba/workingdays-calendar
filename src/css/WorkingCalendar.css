@@ -229,6 +229,14 @@
   opacity: 0.6;
 }
 
+/* Day label variants — full by default, single-char hidden */
+.wc-day-short {
+  display: none;
+}
+.wc-day-full {
+  display: inline;
+}
+
 /* ─── Grid ────────────────────────────────────────────────────────────────── */
 .wc-grid {
   display: grid;
@@ -238,7 +246,7 @@
 
 /* ─── Cell ────────────────────────────────────────────────────────────────── */
 .wc-cell {
-  padding: 8px 8px 28px; /* bottom room for week badge */
+  padding: 8px 8px 28px;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   cursor: default;
@@ -526,7 +534,6 @@
   animation: wc-tooltip-in 0.12s ease;
 }
 
-/* Timezone row — single line, name truncates, offset stays visible */
 .wc-tooltip-tz {
   display: flex;
   align-items: center;
@@ -544,7 +551,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Shrink long timezone names (e.g. "America/New_York") but keep offset visible */
   min-width: 0;
   flex-shrink: 1;
 }
@@ -559,7 +565,7 @@
   border-radius: 3px;
   line-height: 1.6;
   white-space: nowrap;
-  flex-shrink: 0; /* never truncate the UTC offset */
+  flex-shrink: 0;
 }
 
 .wc-tooltip-time {
@@ -671,4 +677,174 @@
   font-size: 12px;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — large tablet / iPad Pro landscape (768px – 899px)
+   Scale down sizes and spacing; keep full day names and week badges
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 899px) {
+  .wc-wrapper {
+    max-width: 100%;
+  }
+
+  /* Title can shrink; don't force equal columns */
+  .wc-header-bar {
+    grid-template-columns: auto auto 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .wc-title {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    padding-left: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+
+  .wc-month-btn {
+    font-size: 13px;
+    padding: 0 12px;
+    height: 32px;
+  }
+
+  .wc-nav-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+
+  .wc-today-btn {
+    height: 32px;
+    font-size: 11px;
+    padding: 0 10px;
+  }
+
+  .wc-header-add-btn {
+    height: 32px;
+    font-size: 12px;
+    padding: 0 12px;
+  }
+
+  .wc-clear-btn {
+    height: 32px;
+    font-size: 11px;
+    padding: 0 10px;
+  }
+
+  .wc-grid {
+    grid-auto-rows: 90px;
+  }
+
+  .wc-cell {
+    padding: 5px 5px 20px;
+    gap: 2px;
+  }
+
+  .wc-cell-top {
+    min-height: 22px;
+    margin-bottom: 1px;
+  }
+
+  .wc-day-num {
+    font-size: 11px;
+    width: 22px;
+    height: 22px;
+  }
+
+  .wc-event-pill {
+    padding: 1px 5px;
+    gap: 4px;
+  }
+
+  .wc-event-label {
+    font-size: 10px;
+  }
+
+  .wc-overflow-chip {
+    font-size: 9px;
+    height: 17px;
+    padding: 0 5px;
+  }
+
+  .wc-week-badge {
+    font-size: 8px;
+    bottom: 4px;
+    right: 5px;
+  }
+
+  .wc-day-header {
+    padding: 9px 0;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — iPad portrait / narrow tablet (600px – 767px)
+   Drop title, switch to single-char day labels, hide week badge,
+   shrink cells further, hide add/edit button (too small to tap)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  /* Title gone — header becomes nav | actions */
+  .wc-title {
+    display: none;
+  }
+
+  .wc-header-bar {
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+
+  .wc-nav {
+    justify-content: flex-start;
+  }
+
+  .wc-header-actions {
+    justify-content: flex-end;
+  }
+
+  /* Single-char day labels */
+  .wc-day-full {
+    display: none;
+  }
+  .wc-day-short {
+    display: inline;
+  }
+
+  .wc-day-header {
+    letter-spacing: 0;
+  }
+
+  /* No room for week badge */
+  .wc-week-badge {
+    display: none;
+  }
+
+  .wc-grid {
+    grid-auto-rows: 80px;
+  }
+
+  .wc-cell {
+    padding: 4px 4px 6px;
+  }
+
+  /* Add/edit button not reliably tappable at this density */
+  .wc-add-btn {
+    display: none;
+  }
+
+  /* Tighter legend */
+  .wc-legend {
+    gap: 4px 12px;
+    padding: 8px 10px;
+    margin-top: 10px;
+  }
+
+  .wc-legend-label {
+    font-size: 11px;
+  }
 }

@@ -36,8 +36,8 @@ export default function WorkingCalendar({
   onEventClick,
   hideLegend = false,
   calendarTimezone,
-  eventActionLabel,
-}: WorkingCalendarProps = {}) {
+  multiSelectAddLabel = "Add",
+}: WorkingCalendarProps) {
   const today = new Date();
   const [viewDate, setViewDate] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1),
@@ -80,7 +80,6 @@ export default function WorkingCalendar({
   const disabledSet = useMemo<Set<string>>(() => {
     const all: Array<string | Date | number> = [...disabledDates];
     if (disableDate !== undefined) all.push(disableDate);
-    // Disabled dates use calendarTimezone (no per-date timezone on disabled entries)
     const tz = calendarTimezone ?? LOCAL_TZ;
     return new Set(
       all.map((d) => toDateKey(d, tz)).filter((k): k is string => k !== null),
@@ -218,7 +217,7 @@ export default function WorkingCalendar({
                 onClick={handleHeaderAdd}
               >
                 <span className="wc-header-add-icon">+</span>
-                Add
+                {multiSelectAddLabel}
                 {selectedDates.size > 0 && (
                   <span className="wc-add-badge">{selectedDates.size}</span>
                 )}
@@ -236,7 +235,8 @@ export default function WorkingCalendar({
               key={d}
               className={`wc-day-header${i === 0 || i === 6 ? " weekend" : ""}`}
             >
-              {d}
+              <span className="wc-day-full">{d}</span>
+              <span className="wc-day-short">{d.charAt(0)}</span>
             </div>
           ))}
         </div>
@@ -389,7 +389,6 @@ export default function WorkingCalendar({
           onEventClick={onEventClick}
           renderTooltip={renderTooltip}
           calendarTimezone={calendarTimezone}
-          eventActionLabel={eventActionLabel}
         />
       )}
     </div>
