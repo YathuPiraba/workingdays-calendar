@@ -116,6 +116,7 @@ export interface WeekViewProps {
   weekDate: Date;
   events: CalendarEvent[];
   calendarTimezone?: string;
+  eventActionLabel?: string;
   onEventClick?: WorkingCalendarProps["onEventClick"];
   renderTooltip?: WorkingCalendarProps["renderTooltip"];
 }

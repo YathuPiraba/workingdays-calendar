@@ -403,7 +403,7 @@ export default function WorkingCalendar({
                   const isOverflowAnchor =
                     hiddenEvents.length > 0 &&
                     hiddenAnchorSegments.some((s) => s.isOverflowAnchor);
-                  const hasEvents = cellSegments.length > 0;
+                  const hasEvents = anchorSegments.length > 0;
 
                   return (
                     <div

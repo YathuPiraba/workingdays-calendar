@@ -1,5 +1,5 @@
-import { useMemo, useRef } from "react";
-import type { PositionedEvent, WeekViewProps } from "../types";
+import { useMemo, useRef, useState } from "react";
+import type { PositionedEvent, WeekViewProps, CalendarEvent } from "../types";
 import { format, addDays, startOfWeek, isToday } from "date-fns";
 import {
   AXIS_HOURS,
@@ -11,6 +11,10 @@ import {
 } from "../utils";
 import WeekEventPill from "./WeekEventPill";
 import AllDayPill from "./AllDayPill";
+import OverflowChip from "./OverflowChip";
+import OverflowDialog from "./OverflowDialog";
+
+const MAX_BANNER_ROWS = 2;
 
 export default function WeekView({
   weekDate,
@@ -18,6 +22,7 @@ export default function WeekView({
   calendarTimezone,
   onEventClick,
   renderTooltip,
+  eventActionLabel,
 }: WeekViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -25,6 +30,13 @@ export default function WeekView({
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const tz =
     calendarTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // ── Overflow dialog state ────────────────────────────────────────────────
+  const [overflowDialog, setOverflowDialog] = useState<{
+    dateKey: string;
+    events: CalendarEvent[];
+    anchorRef: React.RefObject<HTMLButtonElement>;
+  } | null>(null);
 
   // Timed events per day
   const timedByDay = useMemo(() => {
@@ -42,12 +54,67 @@ export default function WeekView({
     [events, days, tz],
   );
 
-  const bannerRows =
-    bannerEntries.length > 0
-      ? Math.max(...bannerEntries.map((e) => e.row)) + 1
+  // ── Split banner into visible (row < MAX) and hidden (row >= MAX) ────────
+  const visibleBannerEntries = useMemo(
+    () => bannerEntries.filter((e) => e.row < MAX_BANNER_ROWS),
+    [bannerEntries],
+  );
+
+  // Map from column index → hidden events for that column
+  const hiddenByCol = useMemo(() => {
+    const map = new Map<number, CalendarEvent[]>();
+    for (const entry of bannerEntries) {
+      if (entry.row < MAX_BANNER_ROWS) continue;
+      // The entry spans startCol .. startCol+colSpan-1
+      for (
+        let col = entry.startCol;
+        col < entry.startCol + entry.colSpan;
+        col++
+      ) {
+        const existing = map.get(col) ?? [];
+        // Deduplicate by event id
+        if (!existing.some((e) => e.id === entry.event.id)) {
+          existing.push(entry.event);
+        }
+        map.set(col, existing);
+      }
+    }
+    return map;
+  }, [bannerEntries]);
+
+  // All events visible in each column (for passing to OverflowDialog)
+  const allEventsByCol = useMemo(() => {
+    const map = new Map<number, CalendarEvent[]>();
+    for (const entry of bannerEntries) {
+      for (
+        let col = entry.startCol;
+        col < entry.startCol + entry.colSpan;
+        col++
+      ) {
+        const existing = map.get(col) ?? [];
+        if (!existing.some((e) => e.id === entry.event.id)) {
+          existing.push(entry.event);
+        }
+        map.set(col, existing);
+      }
+    }
+    return map;
+  }, [bannerEntries]);
+
+  const visibleRows =
+    visibleBannerEntries.length > 0
+      ? Math.max(...visibleBannerEntries.map((e) => e.row)) + 1
       : 0;
-  // 26px per row + 8px top/bottom padding
-  const bannerHeight = bannerRows > 0 ? bannerRows * 26 + 8 : 0;
+
+  // Also account for space needed by overflow chips row
+  const hasAnyOverflow = hiddenByCol.size > 0;
+  const chipRowHeight = hasAnyOverflow ? 24 : 0;
+
+  // 26px per visible row + 8px top/bottom padding + chip row
+  const bannerHeight =
+    visibleRows > 0 || hasAnyOverflow
+      ? visibleRows * 26 + 8 + chipRowHeight
+      : 0;
 
   // Current time
   const now = new Date();
@@ -78,7 +145,7 @@ export default function WeekView({
       </div>
 
       {/* ── All-day banner ───────────────────────────────────────────────── */}
-      {bannerRows > 0 && (
+      {bannerHeight > 0 && (
         <div
           className="wc-week-allday-banner"
           style={{ minHeight: bannerHeight }}
@@ -91,7 +158,14 @@ export default function WeekView({
           {/* 7-column CSS grid for pills */}
           <div
             className="wc-week-allday-grid"
-            style={{ gridTemplateRows: `repeat(${bannerRows}, 26px)` }}
+            style={{
+              gridTemplateRows:
+                visibleRows > 0
+                  ? `repeat(${visibleRows}, 26px)${hasAnyOverflow ? " 24px" : ""}`
+                  : hasAnyOverflow
+                    ? "24px"
+                    : undefined,
+            }}
           >
             {/* Column shading (today highlight + borders) */}
             {days.map((day, colIdx) => (
@@ -100,13 +174,13 @@ export default function WeekView({
                 className={`wc-week-allday-col${isToday(day) ? " today" : ""}`}
                 style={{
                   gridColumn: colIdx + 1,
-                  gridRow: `1 / ${bannerRows + 1}`,
+                  gridRow: `1 / ${visibleRows + (hasAnyOverflow ? 2 : 1)}`,
                 }}
               />
             ))}
 
-            {/* Pill for each all-day event */}
-            {bannerEntries.map((entry) => (
+            {/* Visible all-day pills */}
+            {visibleBannerEntries.map((entry) => (
               <AllDayPill
                 key={`${entry.event.id}-banner`}
                 entry={entry}
@@ -115,6 +189,38 @@ export default function WeekView({
                 renderTooltip={renderTooltip}
               />
             ))}
+
+            {/* Overflow chips — one per column that has hidden events */}
+            {days.map((day, colIdx) => {
+              const hidden = hiddenByCol.get(colIdx);
+              if (!hidden || hidden.length === 0) return null;
+              const allForCol = allEventsByCol.get(colIdx) ?? hidden;
+              return (
+                <div
+                  key={`overflow-${colIdx}`}
+                  style={{
+                    gridColumn: colIdx + 1,
+                    gridRow: visibleRows + 1,
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "2px 4px",
+                  }}
+                >
+                  <OverflowChip
+                    dayKey={format(day, "yyyy-MM-dd")}
+                    hiddenCount={hidden.length}
+                    allCellEvents={allForCol}
+                    onOpen={(ref) =>
+                      setOverflowDialog({
+                        dateKey: format(day, "yyyy-MM-dd"),
+                        events: allForCol,
+                        anchorRef: ref,
+                      })
+                    }
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -185,6 +291,20 @@ export default function WeekView({
           })}
         </div>
       </div>
+
+      {/* ── Overflow dialog ──────────────────────────────────────────────── */}
+      {overflowDialog && (
+        <OverflowDialog
+          dateKey={overflowDialog.dateKey}
+          events={overflowDialog.events}
+          anchorRef={overflowDialog.anchorRef}
+          onClose={() => setOverflowDialog(null)}
+          onEventClick={onEventClick}
+          renderTooltip={renderTooltip}
+          calendarTimezone={calendarTimezone}
+          eventActionLabel={eventActionLabel}
+        />
+      )}
     </div>
   );
 }
