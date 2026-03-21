@@ -330,30 +330,7 @@ Events are placed on the calendar day they occur in a specific timezone, regardl
 />
 ```
 
-Hover over a timed event to see the timezone badge and formatted time in the tooltip.
-
-```tsx
-<WorkingCalendar
-  legend="Team Calendar"
-  events={mockEvents}
-  weekView
-  onEventClick={(event) => console.log("event clicked", event)}
-/>
-```
-
-Hovering a multi-day event shows the full date range in the tooltip.
-
-```tsx
-<WorkingCalendar
-  legend="Team Calendar"
-  events={mockEvents}
-  onEventClick={(event) => console.log("event clicked", event)}
-/>
-```
-
-![Tooltip – multi-day event date range](https://raw.githubusercontent.com/YathuPiraba/working-days-calendar/master/docs/tooltip-multiday.png)
-
----
+![Tooltip – timed event with timezone](https://raw.githubusercontent.com/YathuPiraba/working-days-calendar/master/docs/tooltip-timed.png)
 
 ## Custom Renderers
 

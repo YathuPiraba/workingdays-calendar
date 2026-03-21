@@ -138,20 +138,16 @@ export function formatInTz(
  */
 export function getUtcOffset(tz: string, at: Date = new Date()): string {
   try {
-    const offsetStr = formatInTimeZone(at, tz, "xxx"); // e.g. "+05:30" or "-05:00"
+    if (tz === "UTC") return "UTC+0";
+    if (tz.startsWith("UTC+") || tz.startsWith("UTC-")) return tz;
+
+    const offsetStr = formatInTimeZone(at, tz, "xxx");
     const sign = offsetStr[0] === "-" ? "−" : "+";
     const [h, m] = offsetStr.slice(1).split(":");
     const hours = parseInt(h, 10);
     const mins = parseInt(m, 10);
-    const label = mins === 0 ? `UTC${sign}${hours}` : `UTC${sign}${hours}:${m}`;
 
-    // If the tz name itself already encodes the offset (e.g. "UTC", "UTC+5")
-    // or the offset resolves to exactly UTC+0, skip the redundant badge.
-    if (tz === "UTC" || tz.startsWith("UTC+") || tz.startsWith("UTC-"))
-      return "";
-    if (hours === 0 && mins === 0) return "";
-
-    return label;
+    return mins === 0 ? `UTC${sign}${hours}` : `UTC${sign}${hours}:${m}`;
   } catch {
     return "";
   }

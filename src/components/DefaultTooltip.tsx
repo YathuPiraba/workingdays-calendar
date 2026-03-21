@@ -1,11 +1,6 @@
 import type { CalendarEvent } from "../types";
 import { DEFAULT_COLOR } from "../utils";
-import {
-  formatInTz,
-  getUtcOffset,
-  resolveEventTz,
-  LOCAL_TZ,
-} from "../utils/tz";
+import { formatInTz, getUtcOffset, resolveEventTz } from "../utils/tz";
 
 export default function DefaultTooltip({
   event,
@@ -16,8 +11,11 @@ export default function DefaultTooltip({
 }) {
   const color = event.color ?? DEFAULT_COLOR;
   const tz = resolveEventTz(event.timezone, calendarTimezone);
-  const showTz = tz !== LOCAL_TZ || event.timezone;
+  const showTz = Boolean(event.timezone || calendarTimezone);
   const utcOffset = showTz ? getUtcOffset(tz) : null;
+  console.log(tz);
+
+  console.log(utcOffset);
 
   const timeStr =
     typeof event.date === "string" && event.date.includes("T")
