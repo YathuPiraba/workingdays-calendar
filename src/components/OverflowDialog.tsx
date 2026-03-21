@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { CalendarEvent, OverflowDialogProps } from "../types";
 import { DEFAULT_COLOR, formatDateLabel } from "../utils";
-import "../css/OverflowDialog.css";
 import DefaultDetail from "./DefaultDetail";
+import "../css/OverflowDialog.css";
 
 export default function OverflowDialog({
   dateKey,
@@ -14,11 +14,14 @@ export default function OverflowDialog({
   calendarTimezone,
   eventActionLabel,
 }: OverflowDialogProps) {
-  const [activeId, setActiveId] = useState<string>(events[0]?.id ?? "");
+  const [activeId, setActiveId] = useState<string | number>(
+    events[0]?.id ?? "",
+  );
   const [position, setPosition] = useState<React.CSSProperties>({});
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  const activeEvent = events.find((e) => e.id === activeId) ?? events[0];
+  const activeEvent =
+    events.find((e) => String(e.id) === String(activeId)) ?? events[0];
 
   // Position the dialog near the overflow chip anchor
   useEffect(() => {

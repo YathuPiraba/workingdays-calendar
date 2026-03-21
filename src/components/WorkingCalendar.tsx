@@ -1,6 +1,7 @@
 import { useRef, useMemo, useState, useCallback } from "react";
 import {
   addMonths,
+  addWeeks,
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
@@ -11,16 +12,25 @@ import {
   isWeekend,
   startOfMonth,
   startOfWeek,
+  isSameMonth,
 } from "date-fns";
 import { toDateKey, resolveEventTz, LOCAL_TZ } from "../utils/tz";
+import { buildSpanMap } from "../utils/spanMap";
 import MiniCalendar from "./MiniCalendar";
 import OverflowDialog from "./OverflowDialog";
 import EventPill from "./EventPill";
 import LegendStrip from "./LegendStrip";
 import OverflowChip from "./OverflowChip";
-import type { CalendarEvent, WorkingCalendarProps } from "../types";
+import WeekView from "./WeekView";
+import ViewToggle from "./ViewToggle";
+import type {
+  CalendarEvent,
+  WorkingCalendarProps,
+  CalendarView,
+} from "../types";
 import { validateEvents, WEEKDAYS } from "../utils";
 import "../css/WorkingCalendar.css";
+import "../css/WeekView.css";
 
 export default function WorkingCalendar({
   legend,
@@ -37,8 +47,16 @@ export default function WorkingCalendar({
   calendarTimezone,
   multiSelectAddLabel = "Add",
   onMonthYearChange,
+  weekView: weekViewEnabled = false,
+  onViewChange,
+  onWeekChange,
 }: WorkingCalendarProps) {
   const today = new Date();
+
+  // ── View state ─────────────────────────────────────────────────────────────
+  const [view, setView] = useState<CalendarView>("month");
+
+  // ── Month navigation ───────────────────────────────────────────────────────
   const [viewDate, setViewDate] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1),
   );
@@ -46,10 +64,6 @@ export default function WorkingCalendar({
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const monthBtnRef = useRef<HTMLButtonElement>(null);
 
-  /**
-   * Central setter — every navigation action goes through here so that
-   * onMonthYearChange is always fired when the view actually changes.
-   */
   const applyViewDate = useCallback(
     (next: Date) => {
       setViewDate(next);
@@ -57,8 +71,47 @@ export default function WorkingCalendar({
     },
     [onMonthYearChange],
   );
+  // ── Week navigation ────────────────────────────────────────────────────────
+  // weekDate is always a Sunday (start of the displayed week)
+  const [weekDate, setWeekDate] = useState(() =>
+    startOfWeek(today, { weekStartsOn: 0 }),
+  );
 
-  // Validate events at runtime
+  const applyWeekDate = useCallback(
+    (next: Date) => {
+      setWeekDate(next);
+      if (weekViewEnabled) {
+        onWeekChange?.(format(next, "yyyy-MM-dd"));
+      }
+    },
+    [weekViewEnabled, onWeekChange],
+  );
+
+  const handleWeekPrev = useCallback(
+    () => applyWeekDate(addWeeks(weekDate, -1)),
+    [weekDate, applyWeekDate],
+  );
+  const handleWeekNext = useCallback(
+    () => applyWeekDate(addWeeks(weekDate, 1)),
+    [weekDate, applyWeekDate],
+  );
+
+  const handleViewChange = useCallback(
+    (next: CalendarView) => {
+      setView(next);
+      if (next === "week") {
+        const today = new Date();
+        const base = isSameMonth(today, viewDate)
+          ? today
+          : startOfMonth(viewDate);
+        applyWeekDate(startOfWeek(base, { weekStartsOn: 0 }));
+      }
+      onViewChange?.(next);
+    },
+    [onViewChange, viewDate, applyWeekDate],
+  );
+
+  // ── Validated events ───────────────────────────────────────────────────────
   const validatedEvents = useMemo(() => {
     const { valid, invalid } = validateEvents(eventsProp as unknown[]);
     if (invalid.length > 0 && import.meta.env.MODE !== "production") {
@@ -70,25 +123,7 @@ export default function WorkingCalendar({
     return valid;
   }, [eventsProp]);
 
-  // Group events by date key, sorted by priority desc
-  const eventsByDate = useMemo(() => {
-    const map = new Map<string, CalendarEvent[]>();
-    for (const ev of validatedEvents) {
-      const tz = resolveEventTz(ev.timezone, calendarTimezone);
-      const key = toDateKey(ev.date, tz);
-      if (!key) continue;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(ev);
-    }
-    for (const [key, bucket] of map) {
-      map.set(
-        key,
-        [...bucket].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)),
-      );
-    }
-    return map;
-  }, [validatedEvents]);
-
+  // ── Disabled dates ─────────────────────────────────────────────────────────
   const disabledSet = useMemo<Set<string>>(() => {
     const all: Array<string | Date | number> = [...disabledDates];
     if (disableDate !== undefined) all.push(disableDate);
@@ -98,6 +133,7 @@ export default function WorkingCalendar({
     );
   }, [disableDate, disabledDates, calendarTimezone]);
 
+  // ── Month grid dates ───────────────────────────────────────────────────────
   const monthStart = startOfMonth(viewDate);
   const monthEnd = endOfMonth(viewDate);
   const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -109,12 +145,42 @@ export default function WorkingCalendar({
     rows.push(allDays.slice(i, i + 7));
   }
 
-  const handlePrev = () => applyViewDate(addMonths(viewDate, -1));
-  const handleNext = () => applyViewDate(addMonths(viewDate, 1));
-  const handleToday = () =>
+  // ── Span map (month view) ──────────────────────────────────────────────────
+  const spanMap = useMemo(
+    () =>
+      buildSpanMap({
+        events: validatedEvents,
+        gridDays: allDays,
+        monthStartKey: format(monthStart, "yyyy-MM-dd"),
+        monthEndKey: format(monthEnd, "yyyy-MM-dd"),
+        calendarTimezone,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [validatedEvents, viewDate, calendarTimezone],
+  );
+
+  // ── Month handlers ─────────────────────────────────────────────────────────
+  const handlePrev = () => {
+    if (view === "week") {
+      handleWeekPrev();
+      return;
+    }
+    applyViewDate(addMonths(viewDate, -1));
+  };
+  const handleNext = () => {
+    if (view === "week") {
+      handleWeekNext();
+      return;
+    }
+    applyViewDate(addMonths(viewDate, 1));
+  };
+  const handleToday = () => {
     applyViewDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    applyWeekDate(startOfWeek(today, { weekStartsOn: 0 }));
+  };
   const handleMiniSelect = (month: number, year: number) =>
     applyViewDate(new Date(year, month, 1));
+
   const isOutside = (d: Date) => d < monthStart || d > monthEnd;
 
   const toggleDaySelection = (day: Date) => {
@@ -136,14 +202,14 @@ export default function WorkingCalendar({
 
   const clearSelection = () => setSelectedDates(new Set());
 
-  // Overflow dialog state
+  // ── Overflow dialog ────────────────────────────────────────────────────────
   const [overflowDialog, setOverflowDialog] = useState<{
     dateKey: string;
     events: CalendarEvent[];
     anchorRef: React.RefObject<HTMLButtonElement>;
   } | null>(null);
 
-  // Filter events to only those within the currently viewed month (for legend)
+  // ── Legend events (visible month) ─────────────────────────────────────────
   const currentMonthEvents = useMemo(() => {
     const monthStartKey = format(monthStart, "yyyy-MM-dd");
     const monthEndKey = format(monthEnd, "yyyy-MM-dd");
@@ -151,66 +217,89 @@ export default function WorkingCalendar({
       const tz = resolveEventTz(ev.timezone, calendarTimezone);
       const key = toDateKey(ev.date, tz);
       if (!key) return false;
-      return key >= monthStartKey && key <= monthEndKey;
+      const endKey = ev.endDate ? toDateKey(ev.endDate, tz) : key;
+      return (
+        (key >= monthStartKey && key <= monthEndKey) ||
+        (endKey !== null && endKey >= monthStartKey && key <= monthEndKey)
+      );
     });
   }, [validatedEvents, monthStart, monthEnd, calendarTimezone]);
 
   const showLegend = !hideLegend && currentMonthEvents.length > 0;
 
+  // Build the human-friendly week label (e.g. "Mar 16 – Mar 22, 2025")
+  const weekEndDay = new Date(weekDate);
+  weekEndDay.setDate(weekDate.getDate() + 6);
+  const weekRangeLabel =
+    format(weekDate, "MMM d") + " – " + format(weekEndDay, "MMM d, yyyy");
+
+  const MAX_VISIBLE_TRACKS = 2;
+
   return (
     <div className="wc-wrapper">
-      {/* Header */}
+      {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="wc-header-bar">
-        <span className="wc-title">{legend ?? ""}</span>
+        {/* Left: view toggle (only when weekView prop is enabled) */}
+        <div className="wc-header-left">
+          {weekViewEnabled && (
+            <ViewToggle view={view} onChange={handleViewChange} />
+          )}
+        </div>
 
+        {/* Centre: navigation */}
         <div className="wc-nav">
           <button
             className="wc-nav-btn"
             onClick={handlePrev}
-            aria-label="Previous month"
+            aria-label={view === "week" ? "Previous week" : "Previous month"}
           >
             ‹
           </button>
 
-          <div style={{ position: "relative" }}>
-            <button
-              ref={monthBtnRef}
-              className={`wc-month-btn${showMini ? " active" : ""}`}
-              onClick={() => setShowMini((v) => !v)}
-              aria-expanded={showMini}
-            >
-              {format(viewDate, "MMMM yyyy")}
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-                <path
-                  d="M1 1l4 4 4-4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+          {view === "month" ? (
+            <div style={{ position: "relative" }}>
+              <button
+                ref={monthBtnRef}
+                className={`wc-month-btn${showMini ? " active" : ""}`}
+                onClick={() => setShowMini((v) => !v)}
+                aria-expanded={showMini}
+              >
+                {format(viewDate, "MMMM yyyy")}
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                  <path
+                    d="M1 1l4 4 4-4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              {showMini && (
+                <MiniCalendar
+                  currentMonth={viewDate.getMonth()}
+                  currentYear={viewDate.getFullYear()}
+                  onSelect={handleMiniSelect}
+                  onClose={() => setShowMini(false)}
+                  anchorRef={monthBtnRef}
                 />
-              </svg>
-            </button>
-
-            {showMini && (
-              <MiniCalendar
-                currentMonth={viewDate.getMonth()}
-                currentYear={viewDate.getFullYear()}
-                onSelect={handleMiniSelect}
-                onClose={() => setShowMini(false)}
-                anchorRef={monthBtnRef}
-              />
-            )}
-          </div>
+              )}
+            </div>
+          ) : (
+            /* Week view: show week range label (non-clickable) */
+            <div className="wc-week-range-label">{weekRangeLabel}</div>
+          )}
 
           <button
             className="wc-nav-btn"
             onClick={handleNext}
-            aria-label="Next month"
+            aria-label={view === "week" ? "Next week" : "Next month"}
           >
             ›
           </button>
         </div>
 
+        {/* Right: Today + multiselect actions */}
         <div className="wc-header-actions">
           <button className="wc-today-btn" onClick={handleToday}>
             Today
@@ -239,157 +328,213 @@ export default function WorkingCalendar({
         </div>
       </div>
 
-      {/* Calendar grid */}
+      {/* ── Legend strip ──────────────────────────────────────────────────── */}
+      {legend && (
+        <div className="wc-legend-strip">
+          <span className="wc-legend-strip-text">{legend}</span>
+        </div>
+      )}
+
+      {/* ── Calendar body ─────────────────────────────────────────────────── */}
       <div className="wc-calendar">
-        <div className="wc-day-headers">
-          {WEEKDAYS.map((d, i) => (
-            <div
-              key={d}
-              className={`wc-day-header${i === 0 || i === 6 ? " weekend" : ""}`}
-            >
-              <span className="wc-day-full">{d}</span>
-              <span className="wc-day-short">{d.charAt(0)}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="wc-grid">
-          {rows.map((row, rowIdx) =>
-            row.map((day) => {
-              const outside = isOutside(day);
-              const weekend = isWeekend(day);
-              const todayCell = isToday(day);
-              const isLastRow = rowIdx === rows.length - 1;
-              const weekNum = getWeek(day);
-              const dayOfWeek = getDay(day);
-              const showWeek = dayOfWeek === 0;
-              const dayKey = format(day, "yyyy-MM-dd");
-              const isDisabled = !outside && disabledSet.has(dayKey);
-              const isSelected = multiSelect && selectedDates.has(dayKey);
-              const cellEvents = outside
-                ? []
-                : (eventsByDate.get(dayKey) ?? []);
-              const hasEvents = cellEvents.length > 0;
-              const visibleEvents = cellEvents.slice(0, 2);
-              const hiddenEvents = cellEvents.slice(2);
-
-              return (
+        {view === "month" ? (
+          <>
+            {/* Day headers */}
+            <div className="wc-day-headers">
+              {WEEKDAYS.map((d, i) => (
                 <div
-                  key={day.toISOString()}
-                  className={[
-                    "wc-cell",
-                    outside ? "outside" : "",
-                    weekend && !outside ? "weekend-cell" : "",
-                    todayCell ? "today" : "",
-                    isLastRow ? "last-row" : "",
-                    isDisabled ? "disabled" : "",
-                    multiSelect && !outside && !isDisabled ? "selectable" : "",
-                    isSelected ? "selected" : "",
-                    hasEvents ? "has-events" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  onClick={() => {
-                    if (multiSelect && !outside && !isDisabled)
-                      toggleDaySelection(day);
-                  }}
+                  key={d}
+                  className={`wc-day-header${i === 0 || i === 6 ? " weekend" : ""}`}
                 >
-                  {/* Day number + add/edit button row */}
-                  <div className="wc-cell-top">
-                    <span className="wc-day-num">{format(day, "d")}</span>
-
-                    {!multiSelect && !outside && !isDisabled && onDateClick && (
-                      <button
-                        className={`wc-add-btn${hasEvents ? " wc-edit-btn" : ""}`}
-                        aria-label={
-                          hasEvents
-                            ? `Edit events on ${format(day, "PPP")}`
-                            : `Add event on ${format(day, "PPP")}`
-                        }
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDateClick(dayKey);
-                        }}
-                      >
-                        {hasEvents ? (
-                          <svg
-                            width="11"
-                            height="11"
-                            viewBox="0 0 12 12"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M8.5 1.5a1.414 1.414 0 0 1 2 2L3.5 10.5l-3 .5.5-3L8.5 1.5z"
-                              stroke="currentColor"
-                              strokeWidth="1.4"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        ) : (
-                          "+"
-                        )}
-                      </button>
-                    )}
-
-                    {isSelected && (
-                      <span className="wc-check-tick" aria-hidden="true">
-                        ✓
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Event track pills */}
-                  {visibleEvents.length > 0 && (
-                    <div className="wc-events">
-                      {visibleEvents.map((ev, trackIndex) => (
-                        <EventPill
-                          key={ev.id}
-                          event={ev}
-                          trackIndex={trackIndex}
-                          dateKey={dayKey}
-                          renderEvent={renderEvent}
-                          renderTooltip={renderTooltip}
-                          onEventClick={onEventClick}
-                          calendarTimezone={calendarTimezone}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Overflow chip */}
-                  {hiddenEvents.length > 0 && (
-                    <OverflowChip
-                      dayKey={dayKey}
-                      hiddenCount={hiddenEvents.length}
-                      allCellEvents={cellEvents}
-                      onOpen={(ref) =>
-                        setOverflowDialog({
-                          dateKey: dayKey,
-                          events: cellEvents,
-                          anchorRef: ref,
-                        })
-                      }
-                    />
-                  )}
-
-                  {isDisabled && (
-                    <span className="wc-disabled-line" aria-hidden="true" />
-                  )}
-
-                  {showWeek && !outside && (
-                    <span className="wc-week-badge">W{weekNum}</span>
-                  )}
+                  <span className="wc-day-full">{d}</span>
+                  <span className="wc-day-short">{d.charAt(0)}</span>
                 </div>
-              );
-            }),
-          )}
-        </div>
+              ))}
+            </div>
+
+            {/* Month grid */}
+            <div className="wc-grid">
+              {rows.map((row, rowIdx) =>
+                row.map((day) => {
+                  const outside = isOutside(day);
+                  const weekend = isWeekend(day);
+                  const todayCell = isToday(day);
+                  const isLastRow = rowIdx === rows.length - 1;
+                  const weekNum = getWeek(day);
+                  const dayOfWeek = getDay(day);
+                  const showWeek = dayOfWeek === 0;
+                  const dayKey = format(day, "yyyy-MM-dd");
+                  const isDisabled = !outside && disabledSet.has(dayKey);
+                  const isSelected = multiSelect && selectedDates.has(dayKey);
+
+                  const cellSegments = outside
+                    ? []
+                    : (spanMap.get(dayKey) ?? []);
+                  const anchorSegments = cellSegments.filter((s) =>
+                    ["solo", "start", "firstVisible"].includes(s.role),
+                  );
+                  const continuationSegments = cellSegments.filter((s) =>
+                    ["mid", "end"].includes(s.role),
+                  );
+                  const visibleTracks = new Set(
+                    anchorSegments
+                      .slice(0, MAX_VISIBLE_TRACKS)
+                      .map((s) => s.track),
+                  );
+                  const visibleSegments = cellSegments.filter((s) =>
+                    visibleTracks.has(s.track),
+                  );
+                  const hiddenAnchorSegments =
+                    anchorSegments.slice(MAX_VISIBLE_TRACKS);
+                  const hiddenEvents = [
+                    ...hiddenAnchorSegments.map((s) => s.event),
+                    ...continuationSegments
+                      .filter((s) => !visibleTracks.has(s.track))
+                      .map((s) => s.event),
+                  ].filter(
+                    (ev, i, arr) => arr.findIndex((e) => e.id === ev.id) === i,
+                  );
+                  const allCellEvents = cellSegments
+                    .map((s) => s.event)
+                    .filter(
+                      (ev, i, arr) =>
+                        arr.findIndex((e) => e.id === ev.id) === i,
+                    );
+                  const isOverflowAnchor =
+                    hiddenEvents.length > 0 &&
+                    hiddenAnchorSegments.some((s) => s.isOverflowAnchor);
+                  const hasEvents = cellSegments.length > 0;
+
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      className={[
+                        "wc-cell",
+                        outside ? "outside" : "",
+                        weekend && !outside ? "weekend-cell" : "",
+                        todayCell ? "today" : "",
+                        isLastRow ? "last-row" : "",
+                        isDisabled ? "disabled" : "",
+                        multiSelect && !outside && !isDisabled
+                          ? "selectable"
+                          : "",
+                        isSelected ? "selected" : "",
+                        hasEvents ? "has-events" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      onClick={() => {
+                        if (multiSelect && !outside && !isDisabled)
+                          toggleDaySelection(day);
+                      }}
+                    >
+                      <div className="wc-cell-top">
+                        <span className="wc-day-num">{format(day, "d")}</span>
+                        {!multiSelect &&
+                          !outside &&
+                          !isDisabled &&
+                          onDateClick && (
+                            <button
+                              className={`wc-add-btn${hasEvents ? " wc-edit-btn" : ""}`}
+                              aria-label={
+                                hasEvents
+                                  ? `Edit events on ${format(day, "PPP")}`
+                                  : `Add event on ${format(day, "PPP")}`
+                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDateClick(dayKey);
+                              }}
+                            >
+                              {hasEvents ? (
+                                <svg
+                                  width="11"
+                                  height="11"
+                                  viewBox="0 0 12 12"
+                                  fill="none"
+                                >
+                                  <path
+                                    d="M8.5 1.5a1.414 1.414 0 0 1 2 2L3.5 10.5l-3 .5.5-3L8.5 1.5z"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              ) : (
+                                "+"
+                              )}
+                            </button>
+                          )}
+                        {isSelected && (
+                          <span className="wc-check-tick" aria-hidden="true">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+
+                      {visibleSegments.length > 0 && (
+                        <div className="wc-events">
+                          {visibleSegments.map((seg) => (
+                            <EventPill
+                              key={`${seg.event.id}-${dayKey}`}
+                              event={seg.event}
+                              trackIndex={seg.track}
+                              dateKey={dayKey}
+                              spanRole={seg.role}
+                              cellsRemainingInRow={seg.cellsRemainingInRow}
+                              renderEvent={renderEvent}
+                              renderTooltip={renderTooltip}
+                              onEventClick={onEventClick}
+                              calendarTimezone={calendarTimezone}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {isOverflowAnchor && (
+                        <OverflowChip
+                          dayKey={dayKey}
+                          hiddenCount={hiddenEvents.length}
+                          allCellEvents={allCellEvents}
+                          onOpen={(ref) =>
+                            setOverflowDialog({
+                              dateKey: dayKey,
+                              events: allCellEvents,
+                              anchorRef: ref,
+                            })
+                          }
+                        />
+                      )}
+
+                      {isDisabled && (
+                        <span className="wc-disabled-line" aria-hidden="true" />
+                      )}
+                      {showWeek && !outside && (
+                        <span className="wc-week-badge">W{weekNum}</span>
+                      )}
+                    </div>
+                  );
+                }),
+              )}
+            </div>
+          </>
+        ) : (
+          /* ── Week view ───────────────────────────────────────────────── */
+          <WeekView
+            weekDate={weekDate}
+            events={validatedEvents}
+            calendarTimezone={calendarTimezone}
+            onEventClick={onEventClick}
+            renderTooltip={renderTooltip}
+          />
+        )}
       </div>
 
-      {/* Dynamic event legend */}
-      {showLegend && <LegendStrip events={currentMonthEvents} />}
+      {/* Dynamic event legend strip */}
+      {showLegend && view === "month" && (
+        <LegendStrip events={currentMonthEvents} />
+      )}
 
       {/* Overflow dialog */}
       {overflowDialog && (
