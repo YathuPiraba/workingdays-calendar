@@ -214,10 +214,12 @@ const events = [
 
 ```tsx
 <WorkingCalendar
-  disabledDates={["2026-03-25", new Date(2026, 2, 26)]}
-  disableDate="2026-03-20"
+  disableDate="2026-03-19"
+  disabledDates={["2026-03-26", new Date(2026, 2, 27)]}
 />
 ```
+
+![Disabled dates](https://raw.githubusercontent.com/YathuPiraba/working-days-calendar/master/docs/disableDate.png)
 
 ---
 
@@ -292,40 +294,6 @@ The component uses CSS custom properties. Override them in your global styleshee
 
 ---
 
-## Local Development
-
-```bash
-git clone https://github.com/YathuPiraba/working-days-calendar.git
-cd working-days-calendar
-npm install
-
-# Run the demo app
-npm run dev
-
-# Build the library for publishing
-npm run build:lib
-```
-
----
-
-## Publishing a New Version
-
-```bash
-# 1. Install the new dev dep (first time only)
-npm install --save-dev vite-plugin-dts
-
-# 2. Bump version in package.json
-npm version patch    # or: minor | major
-
-# 3. Build + publish to npm
-npm publish --access public
-
-# 4. Push the version tag to GitHub
-git push --follow-tags
-```
-
----
-
 ## Changelog
 
 ### 1.0.0
@@ -344,3 +312,5 @@ git push --follow-tags
 ## License
 
 MIT © [YathuPiraba](https://github.com/YathuPiraba)
+
+> Source on [GitHub](https://github.com/YathuPiraba/working-days-calendar) — issues and PRs welcome.

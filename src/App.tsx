@@ -23,6 +23,8 @@ function App() {
         onMonthYearChange={(month, year) =>
           console.log("month changed", month, year)
         }
+        disabledDates={["2026-03-27", new Date(2026, 2, 26)]}
+        disableDate="2026-03-19"
       />
     </div>
   );
