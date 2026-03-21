@@ -542,10 +542,16 @@ The component uses CSS custom properties. Override them in your global styleshee
 
 ---
 
-## Changelog
+### 1.0.0
 
-### 1.1.0
-
+- Initial release
+- Monthly grid with event pills, overflow dialog, tooltips
+- Timezone-aware event placement via `date-fns-tz`
+- Multi-date selection mode
+- Mini calendar picker
+- Custom `renderEvent` and `renderTooltip` slots
+- Dynamic legend strip
+- Disabled dates support
 - **Multi-day spanning events** — add `endDate` to any `CalendarEvent` to stretch pills across cells
 - **Week view** — hourly time axis, overlap-aware event columns, current-time indicator
 - **All-day banner** — events without a time component appear in a sticky strip above the week view time grid; multi-day all-day events span the correct columns
@@ -557,17 +563,6 @@ The component uses CSS custom properties. Override them in your global styleshee
 - **`CalendarView` type** exported — `"month" | "week"`
 - **`SpanRole`, `SpanSegment`, `SpanMap` types** exported
 - **`BannerEntry`, `PositionedEvent` types** exported
-
-### 1.0.0
-
-- Initial release
-- Monthly grid with event pills, overflow dialog, tooltips
-- Timezone-aware event placement via `date-fns-tz`
-- Multi-date selection mode
-- Mini calendar picker
-- Custom `renderEvent` and `renderTooltip` slots
-- Dynamic legend strip
-- Disabled dates support
 
 ---
 
