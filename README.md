@@ -99,7 +99,7 @@ export default function App() {
 
 ```ts
 interface CalendarEvent {
-  id: string;
+  id: string | number;
   date: string | Date | number; // 'yyyy-MM-dd' | 'MM/dd/yyyy' | 'dd-MM-yyyy' | ISO | timestamp
   label: string;
   color?: string; // Any valid CSS color: hex, hsl(), rgb(), var(--token)
