@@ -1,6 +1,6 @@
 {
   "name": "react-working-days-calendar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A fully-featured, timezone-aware working days calendar component for React",
   "type": "module",
   "main": "dist/index.cjs.js",
