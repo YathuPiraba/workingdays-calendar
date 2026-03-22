@@ -114,7 +114,7 @@ export default function WorkingCalendar({
   // ── Validated events ───────────────────────────────────────────────────────
   const validatedEvents = useMemo(() => {
     const { valid, invalid } = validateEvents(eventsProp as unknown[]);
-    if (invalid.length > 0 && import.meta.env.MODE !== "production") {
+    if (invalid.length > 0) {
       console.warn(
         `[WorkingCalendar] ${invalid.length} event(s) failed validation and were skipped:`,
         invalid,

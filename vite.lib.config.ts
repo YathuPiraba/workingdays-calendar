@@ -1,13 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import dts from "vite-plugin-dts";
+import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
 import { resolve } from "path";
 
 export default defineConfig({
   plugins: [
     react(),
     dts({
+      tsconfigPath: resolve(__dirname, "tsconfig.lib.json"),
       insertTypesEntry: true,
+      rollupTypes: true,
       include: ["src"],
       exclude: [
         "src/App.tsx",
@@ -18,6 +21,7 @@ export default defineConfig({
         "src/vite-env.d.ts",
       ],
     }),
+    cssInjectedByJsPlugin(),
   ],
   build: {
     lib: {
@@ -37,7 +41,6 @@ export default defineConfig({
         },
       },
     },
-    // Clear dist before each lib build
     emptyOutDir: true,
     outDir: "dist",
     cssCodeSplit: false,
