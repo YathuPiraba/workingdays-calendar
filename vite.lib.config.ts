@@ -7,7 +7,9 @@ export default defineConfig({
   plugins: [
     react(),
     dts({
+      tsconfigPath: resolve(__dirname, "tsconfig.lib.json"),
       insertTypesEntry: true,
+      rollupTypes: true,
       include: ["src"],
       exclude: [
         "src/App.tsx",
@@ -37,7 +39,6 @@ export default defineConfig({
         },
       },
     },
-    // Clear dist before each lib build
     emptyOutDir: true,
     outDir: "dist",
     cssCodeSplit: false,
